@@ -12,10 +12,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const now = rows[0]?.now;
     ({ rows } = await db.query('SELECT artist FROM albums LIMIT 1'));
     const artist = rows[0]?.artist;   
-    res.status(200).json({ time: now, artist: artist, message: `Sparks Database connection successful. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
+    res.status(200).json({ time: now, artist: artist, message: `Kaden Database connection successful. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
   } catch (err) {
     res.status(500).json({ error: 'Database connection failed',
-       details: (err as Error).message, message: `Sparks Database connection failed. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
+       details: (err as Error).message, message: `Kaden Database connection failed. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
   }
 
 }
