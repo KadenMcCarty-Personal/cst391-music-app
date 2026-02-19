@@ -12,6 +12,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ time: rows[0], message: `Kaden's Database connection successful. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
   } catch (err) {
     res.status(500).json({ error: 'Database connection failed',
-       details: (err as Error).message, message: `Sparks Database connection failed. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
+       details: (err as Error).message, message: `Kaden's Database connection failed. Running in ${environment}. DATABASE_URL: ${dbUrl}` });
   }
 }
