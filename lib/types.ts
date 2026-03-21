@@ -15,3 +15,23 @@ export interface Album {
   description?: string | null;
   tracks?: Track[];
 }
+
+export interface PlaylistTrack {
+  id: number;
+  track_id: number;
+  playlist_id: number;
+  position: number;
+  title: string;
+  number: number;
+  lyrics?: string | null;
+  video_url?: string | null;
+  album_id: number;
+}
+
+export interface Playlist {
+  id: number;
+  name: string;
+  user_id?: number | null;
+  is_public: boolean;
+  tracks?: PlaylistTrack[];
+}
