@@ -1,7 +1,7 @@
 // app/edit/[albumId]/page.tsx
 "use client";
 
-import { get } from "@/lib/apiClient";
+import { get, post, put } from "@/lib/apiClient";
 import { Album, Track } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -38,19 +38,17 @@ export default function EditAlbumPage() {
     })();
   }, [albumId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    const method = albumId ? "PUT" : "POST";
     const payload = {
       ...album,
       year: parseInt(String(album.year), 10),
-      ...(albumId ? { albumId: parseInt(String(albumId), 10) } : {}),
     };
-    await fetch(`/api/albums`, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    if (albumId) {
+      await put<Album>("/albums", { ...payload, albumId: parseInt(String(albumId), 10) });
+    } else {
+      await post<Album>("/albums", payload);
+    }
     router.push("/");
   };
 

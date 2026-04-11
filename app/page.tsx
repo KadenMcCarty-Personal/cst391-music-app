@@ -8,19 +8,26 @@ import NavBar from "./components/NavBar";
 // import OneAlbum from "../components/OneAlbum";
 import { useRouter } from "next/navigation";
 import { Album } from "@/lib/types";
+import { get } from "@/lib/apiClient";
+import AlbumCard from "./components/AlbumCard";
 
 export default function Page() {
   const [searchPhrase, setSearchPhrase] = useState("");
   const [albumList, setAlbumList] = useState<Album[]>([]);
   const [currentlySelectedAlbumId, setCurrentlySelectedAlbumId] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
 
   const loadAlbums = async () => {
-    const response = await fetch("/api/albums");
-    const data = await response.json();
-    console.log("Fetched albums:", data);
-    setAlbumList(data);
+    try {
+      const data = await get<Album[]>("/albums");
+      console.log("Fetched albums:", data);
+      setAlbumList(data);
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    }
   };
 
   useEffect(() => {
@@ -53,7 +60,7 @@ export default function Page() {
   });
 
   const onEditAlbum = () => {
-    loadAlbums();
+    void loadAlbums();
     router.push("/");
   };
 
@@ -68,20 +75,27 @@ export default function Page() {
       <NavBar />
       <h1>Kaden McCarty - Album List</h1>
       <p>This JSON data is rendered directly from the API response.</p>
-      <pre
-        style={{
-          backgroundColor: "#f4f4f4",
+      {error ? (
+        <div style={{
+          backgroundColor: "#fee2e2",
+          border: "1px solid #ef4444",
           padding: "1rem",
           borderRadius: "8px",
-          overflow: "auto",
-          color: "#111",
-          fontSize: "0.9rem",
-          lineHeight: "1.4",
-        }}
-      >
-        {albumList.length > 0 && JSON.stringify(albumList, null, 2)}
-      </pre>
-      {albumList.length === 0 && <p>Loading albums...</p>}
+          color: "#b91c1c",
+        }}>
+          <strong>Error:</strong> {error}
+        </div>
+      ) : (
+        <>
+          {albumList.length > 0 && (
+            <AlbumCard
+              album={albumList[0]}
+              onClick={(album, uri) => updateSingleAlbum(album.id, uri)}
+            />
+          )}
+          {albumList.length === 0 && <p>Loading albums...</p>}
+        </>
+      )}
     </main>
   );
 }
