@@ -13,10 +13,7 @@ export default function AboutPage() {
         <div className="card-body text-center p-5">
           <h1 className="card-title display-4">Music App</h1>
           <hr />
-          <p className="card-text lead">
-            A full-stack music album manager built with Next.js, TypeScript, Bootstrap,
-            and a Neon PostgreSQL database — deployed on Vercel.
-          </p>
+          
           <div className="mt-4">
             <h4>Boss</h4>
             <p className="fs-5 fw-bold">Kaden McCarty</p>
