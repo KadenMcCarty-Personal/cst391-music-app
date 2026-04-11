@@ -44,7 +44,7 @@ export default function Page() {
     console.log("Update Single Album = ", albumId);
     const indexNumber = albumList.findIndex((a) => a.id === albumId);
     setCurrentlySelectedAlbumId(indexNumber);
-    const path = `${uri}${indexNumber}`;
+    const path = `${uri}${albumId}`;
     console.log("path", path);
     router.push(path);
   };
