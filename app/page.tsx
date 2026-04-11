@@ -9,7 +9,7 @@ import NavBar from "./components/NavBar";
 import { useRouter } from "next/navigation";
 import { Album } from "@/lib/types";
 import { get } from "@/lib/apiClient";
-import AlbumCard from "./components/AlbumCard";
+import AlbumList from "./components/AlbumList";
 
 export default function Page() {
   const [searchPhrase, setSearchPhrase] = useState("");
@@ -49,15 +49,13 @@ export default function Page() {
     router.push(path);
   };
 
-  const renderedList = albumList.filter((album) => {
-    if (
-      (album.description ?? "").toLowerCase().includes(searchPhrase.toLowerCase()) ||
-      searchPhrase === ""
-    ) {
-      return true;
-    }
-    return false;
-  });
+  const lowerPhrase = searchPhrase.toLowerCase();
+  const renderedList = albumList.filter((album) =>
+    searchPhrase === "" ||
+    album.title.toLowerCase().includes(lowerPhrase) ||
+    album.artist.toLowerCase().includes(lowerPhrase) ||
+    (album.description ?? "").toLowerCase().includes(lowerPhrase)
+  );
 
   const onEditAlbum = () => {
     void loadAlbums();
@@ -87,13 +85,17 @@ export default function Page() {
         </div>
       ) : (
         <>
-          {albumList.length > 0 && (
-            <AlbumCard
-              album={albumList[0]}
-              onClick={(album, uri) => updateSingleAlbum(album.id, uri)}
-            />
-          )}
+          <input
+            className="form-control mb-3"
+            placeholder="Search albums..."
+            value={searchPhrase}
+            onChange={(e) => void updateSearchResults(e.target.value)}
+          />
           {albumList.length === 0 && <p>Loading albums...</p>}
+          <AlbumList
+            albums={renderedList}
+            onAlbumSelected={(album, uri) => updateSingleAlbum(album.id, uri)}
+          />
         </>
       )}
     </main>
