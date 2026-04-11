@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// import NavBar from "../components/NavBar";
+import NavBar from "./components/NavBar";
 // import SearchAlbum from "../components/SearchAlbum";
 // import EditAlbum from "../components/EditAlbum";
 // import OneAlbum from "../components/OneAlbum";
@@ -65,7 +65,7 @@ export default function Page() {
 
   return (
     <main>
-      {/* <NavBar /> */}
+      <NavBar />
       <h1>Kaden McCarty - Album List</h1>
       <p>This JSON data is rendered directly from the API response.</p>
       <pre
