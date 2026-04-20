@@ -31,10 +31,10 @@ export default function PlaylistsPage() {
       const allData = await get<Playlist[]>(allEndpoint);
       setAllPlaylists(allData);
 
-      // "Mine" uses user_id filter to include the user's own private playlists
+      // "my playlists" fetches user's playlists then filters to only ones they own
       if (githubId) {
         const myData = await get<Playlist[]>(`/playlists?user_id=${githubId}`);
-        setMyPlaylists(myData);
+        setMyPlaylists(myData.filter((p) => p.user_id === githubId));
       }
 
       setError(null);
