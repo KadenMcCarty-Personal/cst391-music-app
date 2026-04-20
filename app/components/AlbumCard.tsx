@@ -1,6 +1,8 @@
 // A component to display individual album info, not included in Next.js routing
 // app/components/AlbumCard.tsx
+"use client";
 
+import { useSession } from "next-auth/react";
 import { Album } from "@/lib/types";
 
 interface AlbumCardProps {
@@ -9,6 +11,9 @@ interface AlbumCardProps {
 }
 
 export default function AlbumCard({ album, onClick }: AlbumCardProps) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
+
   return (
     <div className="card" style={{ width: "18rem", margin: "1rem" }}>
       {album.image && (
@@ -19,18 +24,22 @@ export default function AlbumCard({ album, onClick }: AlbumCardProps) {
         <h6 className="card-subtitle mb-2 text-muted">{album.artist}</h6>
         <p className="card-text">{album.year}</p>
         <p className="card-text">{album.description}</p>
-        <button
-          className="btn btn-primary me-2"
-          onClick={() => onClick(album, "/edit/")}
-        >
-          Edit
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => onClick(album, "/show/")}
-        >
-          View
-        </button>
+        {session && (
+          <button
+            className="btn btn-secondary me-2"
+            onClick={() => onClick(album, "/show/")}
+          >
+            View
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            className="btn btn-primary"
+            onClick={() => onClick(album, "/edit/")}
+          >
+            Edit
+          </button>
+        )}
       </div>
     </div>
   );

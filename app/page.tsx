@@ -72,7 +72,6 @@ export default function Page() {
     <main>
       <NavBar />
       <h1>Kaden McCarty - Album List</h1>
-      <p>This JSON data is rendered directly from the API response.</p>
       {error ? (
         <div style={{
           backgroundColor: "#fee2e2",
