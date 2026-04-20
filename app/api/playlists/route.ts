@@ -1,53 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
-import { Playlist } from '@/lib/types';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import * as playlistService from '@/lib/services/playlistService';
+import { ServiceError } from '@/lib/services/playlistService';
 
 export const runtime = 'nodejs';
 
-// GET /api/playlists - get all public playlists (or all if user_id provided)
 export async function GET(request: NextRequest) {
   try {
-    const pool = getPool();
     const url = new URL(request.url);
-    const userId = url.searchParams.get('user_id');
-
-    let rows;
-    if (userId) {
-      ({ rows } = await pool.query(
-        'SELECT * FROM playlists WHERE user_id = $1 OR is_public = TRUE ORDER BY id',
-        [userId]
-      ));
-    } else {
-      ({ rows } = await pool.query(
-        'SELECT * FROM playlists WHERE is_public = TRUE ORDER BY id'
-      ));
-    }
-
-    return NextResponse.json(rows as Playlist[]);
+    const userId = url.searchParams.get('user_id') ?? undefined;
+    const playlists = await playlistService.listPlaylists(userId);
+    return NextResponse.json(playlists);
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('GET /api/playlists error:', error);
     return NextResponse.json({ error: 'Failed to fetch playlists' }, { status: 500 });
   }
 }
 
-// POST /api/playlists - create a new playlist
 export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { name, user_id, is_public } = body;
-
-    if (!name) {
-      return NextResponse.json({ error: 'Missing required field: name' }, { status: 400 });
-    }
-
-    const pool = getPool();
-    const { rows } = await pool.query(
-      'INSERT INTO playlists (name, user_id, is_public) VALUES ($1, $2, $3) RETURNING *',
-      [name, user_id ?? null, is_public ?? true]
-    );
-
-    return NextResponse.json(rows[0] as Playlist, { status: 201 });
+    const playlist = await playlistService.createPlaylist(name, user_id ?? null, is_public ?? true);
+    return NextResponse.json(playlist, { status: 201 });
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('POST /api/playlists error:', error);
     return NextResponse.json({ error: 'Failed to create playlist' }, { status: 500 });
   }

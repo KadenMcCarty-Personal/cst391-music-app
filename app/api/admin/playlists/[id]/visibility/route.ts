@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
-import { Playlist } from '@/lib/types';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import * as playlistService from '@/lib/services/playlistService';
+import { ServiceError } from '@/lib/services/playlistService';
 
 export const runtime = 'nodejs';
 
-// PUT /api/admin/playlists/[id]/visibility - admin: toggle a playlist's public/private status
-// Body: { is_public: boolean }
 export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.user?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const { id } = await context.params;
   const playlistId = parseInt(id, 10);
   if (isNaN(playlistId)) {
@@ -19,23 +23,12 @@ export async function PUT(
   try {
     const body = await request.json();
     const { is_public } = body;
-
-    if (typeof is_public !== 'boolean') {
-      return NextResponse.json({ error: 'Missing required field: is_public (boolean)' }, { status: 400 });
-    }
-
-    const pool = getPool();
-    const { rows } = await pool.query(
-      'UPDATE playlists SET is_public = $1 WHERE id = $2 RETURNING *',
-      [is_public, playlistId]
-    );
-
-    if (rows.length === 0) {
-      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(rows[0] as Playlist);
+    const playlist = await playlistService.setVisibility(playlistId, is_public);
+    return NextResponse.json(playlist);
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error(`PUT /api/admin/playlists/${id}/visibility error:`, error);
     return NextResponse.json({ error: 'Failed to update playlist visibility' }, { status: 500 });
   }
