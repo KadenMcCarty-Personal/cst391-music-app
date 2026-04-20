@@ -7,14 +7,14 @@ export const runtime = 'nodejs';
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (session.user?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { id } = await context.params;
-  const albumId = parseInt(id, 10);
+  const { slug } = await context.params;
+  const albumId = parseInt(slug, 10);
   if (isNaN(albumId)) {
     return NextResponse.json({ error: 'Invalid album ID' }, { status: 400 });
   }
@@ -46,7 +46,7 @@ export async function POST(
 
     return NextResponse.json(rows[0], { status: 201 });
   } catch (error) {
-    console.error(`POST /api/albums/${id}/tracks error:`, error);
+    console.error(`POST /api/albums/${slug}/tracks error:`, error);
     return NextResponse.json({ error: 'Failed to add track' }, { status: 500 });
   }
 }
