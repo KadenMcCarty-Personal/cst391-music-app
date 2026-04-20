@@ -34,6 +34,9 @@ export const authOptions: NextAuthOptions = {
       if (account && profile && typeof profile.email === "string") {
         token.email = profile.email;
       }
+      if (account && profile && typeof (profile as { id?: number }).id === "number") {
+        token.githubId = (profile as { id: number }).id;
+      }
 
       // Simple admin allowlist via env var
       const admins = (process.env.ADMIN_EMAILS ?? "").split(",");
@@ -55,6 +58,7 @@ export const authOptions: NextAuthOptions = {
     }): Promise<Session> {
       if (session.user) {
         session.user.role = token.role as "admin" | "user" | undefined;
+        session.user.githubId = token.githubId;
       }
       return session;
     },

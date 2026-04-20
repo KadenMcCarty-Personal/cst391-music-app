@@ -7,15 +7,17 @@ import NavBar from "@/app/components/NavBar";
 import { get, post } from "@/lib/apiClient";
 import { Playlist } from "@/lib/types";
 
-type Filter = "all" | "public" | "private";
+type Tab = "all" | "my playlists";
 
 export default function PlaylistsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "admin";
+  const githubId = session?.user?.githubId;
   const router = useRouter();
 
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [allPlaylists, setAllPlaylists] = useState<Playlist[]>([]);
+  const [myPlaylists, setMyPlaylists] = useState<Playlist[]>([]);
+  const [tab, setTab] = useState<Tab>("all");
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -24,9 +26,17 @@ export default function PlaylistsPage() {
 
   const loadPlaylists = async () => {
     try {
-      const endpoint = isAdmin ? "/admin/playlists" : "/playlists";
-      const data = await get<Playlist[]>(endpoint);
-      setPlaylists(data);
+      // Admin fetches all (including private), others fetch public only
+      const allEndpoint = isAdmin ? "/admin/playlists" : "/playlists";
+      const allData = await get<Playlist[]>(allEndpoint);
+      setAllPlaylists(allData);
+
+      // "Mine" uses user_id filter to include the user's own private playlists
+      if (githubId) {
+        const myData = await get<Playlist[]>(`/playlists?user_id=${githubId}`);
+        setMyPlaylists(myData);
+      }
+
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -35,16 +45,20 @@ export default function PlaylistsPage() {
 
   useEffect(() => {
     void loadPlaylists();
-  // reload when admin status resolves
+  // re-fetch once session resolves
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [isAdmin, githubId]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await post("/playlists", { name: newName.trim(), is_public: newPublic });
+      await post("/playlists", {
+        name: newName.trim(),
+        is_public: newPublic,
+        user_id: githubId ?? null,
+      });
       setNewName("");
       setNewPublic(true);
       setShowForm(false);
@@ -56,11 +70,7 @@ export default function PlaylistsPage() {
     }
   };
 
-  const filtered = playlists.filter((p) => {
-    if (filter === "public") return p.is_public;
-    if (filter === "private") return !p.is_public;
-    return true;
-  });
+  const displayed = tab === "my playlists" ? myPlaylists : allPlaylists;
 
   return (
     <main>
@@ -117,38 +127,32 @@ export default function PlaylistsPage() {
         <ul className="nav nav-tabs mb-3">
           <li className="nav-item">
             <button
-              className={`nav-link ${filter === "all" ? "active" : ""}`}
-              onClick={() => setFilter("all")}
+              className={`nav-link ${tab === "all" ? "active" : ""}`}
+              onClick={() => setTab("all")}
             >
-              All
+              {isAdmin ? "All (incl. private)" : "All Public"}
             </button>
           </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${filter === "public" ? "active" : ""}`}
-              onClick={() => setFilter("public")}
-            >
-              Public
-            </button>
-          </li>
-          {isAdmin && (
+          {session && (
             <li className="nav-item">
               <button
-                className={`nav-link ${filter === "private" ? "active" : ""}`}
-                onClick={() => setFilter("private")}
+                className={`nav-link ${tab === "my playlists" ? "active" : ""}`}
+                onClick={() => setTab("my playlists")}
               >
-                Private
+                My Playlists
               </button>
             </li>
           )}
         </ul>
 
-        {filtered.length === 0 && !error && (
-          <p className="text-muted">No playlists found.</p>
+        {displayed.length === 0 && !error && (
+          <p className="text-muted">
+            {tab === "my playlists" ? "You have no playlists yet." : "No playlists found."}
+          </p>
         )}
 
         <div className="row">
-          {filtered.map((playlist) => (
+          {displayed.map((playlist) => (
             <div key={playlist.id} className="col-md-4 mb-3">
               <div className="card h-100">
                 <div className="card-body d-flex flex-column">
