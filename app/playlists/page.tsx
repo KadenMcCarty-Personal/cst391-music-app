@@ -7,10 +7,15 @@ import NavBar from "@/app/components/NavBar";
 import { get, post } from "@/lib/apiClient";
 import { Playlist } from "@/lib/types";
 
+type Filter = "all" | "public" | "private";
+
 export default function PlaylistsPage() {
   const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
   const router = useRouter();
+
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -19,7 +24,8 @@ export default function PlaylistsPage() {
 
   const loadPlaylists = async () => {
     try {
-      const data = await get<Playlist[]>("/playlists");
+      const endpoint = isAdmin ? "/admin/playlists" : "/playlists";
+      const data = await get<Playlist[]>(endpoint);
       setPlaylists(data);
       setError(null);
     } catch (err) {
@@ -29,7 +35,9 @@ export default function PlaylistsPage() {
 
   useEffect(() => {
     void loadPlaylists();
-  }, []);
+  // reload when admin status resolves
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +55,12 @@ export default function PlaylistsPage() {
       setCreating(false);
     }
   };
+
+  const filtered = playlists.filter((p) => {
+    if (filter === "public") return p.is_public;
+    if (filter === "private") return !p.is_public;
+    return true;
+  });
 
   return (
     <main>
@@ -100,12 +114,41 @@ export default function PlaylistsPage() {
           </form>
         )}
 
-        {playlists.length === 0 && !error && (
-          <p className="text-muted">No public playlists yet.</p>
+        <ul className="nav nav-tabs mb-3">
+          <li className="nav-item">
+            <button
+              className={`nav-link ${filter === "all" ? "active" : ""}`}
+              onClick={() => setFilter("all")}
+            >
+              All
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${filter === "public" ? "active" : ""}`}
+              onClick={() => setFilter("public")}
+            >
+              Public
+            </button>
+          </li>
+          {isAdmin && (
+            <li className="nav-item">
+              <button
+                className={`nav-link ${filter === "private" ? "active" : ""}`}
+                onClick={() => setFilter("private")}
+              >
+                Private
+              </button>
+            </li>
+          )}
+        </ul>
+
+        {filtered.length === 0 && !error && (
+          <p className="text-muted">No playlists found.</p>
         )}
 
         <div className="row">
-          {playlists.map((playlist) => (
+          {filtered.map((playlist) => (
             <div key={playlist.id} className="col-md-4 mb-3">
               <div className="card h-100">
                 <div className="card-body d-flex flex-column">

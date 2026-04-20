@@ -1,6 +1,12 @@
 import { getPool } from '@/lib/db';
 import { Playlist, PlaylistTrack } from '@/lib/types';
 
+export async function getAllPlaylistsAdmin(): Promise<Playlist[]> {
+  const pool = getPool();
+  const { rows } = await pool.query('SELECT * FROM playlists ORDER BY id');
+  return rows as Playlist[];
+}
+
 export async function getAllPlaylists(userId?: string): Promise<Playlist[]> {
   const pool = getPool();
   if (userId) {

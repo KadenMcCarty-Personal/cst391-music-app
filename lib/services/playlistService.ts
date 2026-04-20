@@ -11,6 +11,10 @@ export async function listPlaylists(userId?: string): Promise<Playlist[]> {
   return repo.getAllPlaylists(userId);
 }
 
+export async function listAllPlaylistsAdmin(): Promise<Playlist[]> {
+  return repo.getAllPlaylistsAdmin();
+}
+
 export async function getPlaylist(playlistId: number): Promise<Playlist> {
   const playlist = await repo.getPlaylistById(playlistId);
   if (!playlist) throw new ServiceError(404, 'Playlist not found');
