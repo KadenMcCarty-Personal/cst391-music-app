@@ -34,8 +34,11 @@ export const authOptions: NextAuthOptions = {
       if (account && profile && typeof profile.email === "string") {
         token.email = profile.email;
       }
-      if (account && profile && typeof (profile as { id?: number }).id === "number") {
-        token.githubId = (profile as { id: number }).id;
+      if (account && profile) {
+        const rawId = (profile as { id?: string | number }).id;
+        if (rawId !== undefined) {
+          token.githubId = typeof rawId === "number" ? rawId : parseInt(String(rawId), 10);
+        }
       }
 
       // Simple admin allowlist via env var

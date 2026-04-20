@@ -5,12 +5,12 @@ import { get, post, put } from "@/lib/apiClient";
 import { Album, Track } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import NavBar from "@/app/components/NavBar";
 
 export default function EditAlbumPage() {
   const router = useRouter();
-  // Next.js params hook replaces useParams from react-router
   const params = useParams();
-  const albumId = params?.albumId; // undefined under /new
+  const albumId = params?.albumId;
 
   const defaultAlbum: Album = {
     id: 0,
@@ -22,34 +22,46 @@ export default function EditAlbumPage() {
     tracks: [] as Track[],
   };
 
-  // Type safe use of defaultAlbum to initialize state
   const [album, setAlbum] = useState(defaultAlbum);
+  const [newTrackTitle, setNewTrackTitle] = useState("");
+  const [addingTrack, setAddingTrack] = useState(false);
+  const [trackError, setTrackError] = useState<string | null>(null);
 
-  // Load album only when editing
+  const loadAlbum = async () => {
+    if (!albumId) return;
+    const res = await get<Album>(`/albums?albumId=${albumId}`);
+    setAlbum(Array.isArray(res) ? res[0] : res);
+  };
+
   useEffect(() => {
-    if (!albumId) return; // creation mode
-    (async () => {
-      const res = await get<Album>(`/albums?albumId=${albumId}`);
-      if (Array.isArray(res)) {
-        setAlbum(res[0]);
-      } else {
-        setAlbum(res);
-      }
-    })();
+    void loadAlbum();
   }, [albumId]);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    const payload = {
-      ...album,
-      year: parseInt(String(album.year), 10),
-    };
+    const payload = { ...album, year: parseInt(String(album.year), 10) };
     if (albumId) {
       await put<Album>("/albums", { ...payload, albumId: parseInt(String(albumId), 10) });
     } else {
       await post<Album>("/albums", payload);
     }
     router.push("/");
+  };
+
+  const handleAddTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTrackTitle.trim() || !albumId) return;
+    setAddingTrack(true);
+    setTrackError(null);
+    try {
+      await post(`/albums/${albumId}/tracks`, { title: newTrackTitle.trim() });
+      setNewTrackTitle("");
+      await loadAlbum();
+    } catch (err) {
+      setTrackError((err as Error).message);
+    } finally {
+      setAddingTrack(false);
+    }
   };
 
   const onChange =
@@ -59,8 +71,9 @@ export default function EditAlbumPage() {
 
   return (
     <main style={{ padding: "1rem" }}>
+      <NavBar />
       <h1>{albumId ? "Edit Album" : "Create Album"}</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={(e) => void handleSubmit(e)}>
         <div className="mb-3">
           <input
             className="form-control"
@@ -105,6 +118,41 @@ export default function EditAlbumPage() {
           {albumId ? "Update" : "Save"}
         </button>
       </form>
+
+      {albumId && (
+        <div className="mt-4" style={{ maxWidth: "600px" }}>
+          <h4>Tracks</h4>
+
+          {(!album.tracks || album.tracks.length === 0) && (
+            <p className="text-muted">No tracks yet.</p>
+          )}
+
+          <ul className="list-group mb-3">
+            {album.tracks?.map((track) => (
+              <li key={track.id} className="list-group-item d-flex align-items-center gap-3">
+                <span className="text-muted" style={{ minWidth: "2rem" }}>
+                  {track.number}.
+                </span>
+                <span>{track.title}</span>
+              </li>
+            ))}
+          </ul>
+
+          <form onSubmit={(e) => void handleAddTrack(e)} className="d-flex gap-2">
+            <input
+              className="form-control"
+              placeholder="New track title"
+              value={newTrackTitle}
+              onChange={(e) => setNewTrackTitle(e.target.value)}
+              required
+            />
+            <button className="btn btn-success text-nowrap" type="submit" disabled={addingTrack}>
+              {addingTrack ? "Adding..." : "+ Add Track"}
+            </button>
+          </form>
+          {trackError && <div className="text-danger mt-1">{trackError}</div>}
+        </div>
+      )}
     </main>
   );
 }
