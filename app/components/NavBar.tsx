@@ -36,6 +36,9 @@ export default function NavBar() {
               New Album
             </Link>
           )}
+          <Link href="/playlists" className="nav-item nav-link">
+            Playlists
+          </Link>
           <Link href="/about" className="nav-item nav-link">
             About
           </Link>

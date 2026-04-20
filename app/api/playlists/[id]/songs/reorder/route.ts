@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import * as playlistService from '@/lib/services/playlistService';
+import { ServiceError } from '@/lib/services/playlistService';
 
 export const runtime = 'nodejs';
 
-// PUT /api/playlists/[id]/songs/reorder - reorder tracks in a playlist
-// Body: { order: [{ track_id: number, position: number }] }
 export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await context.params;
   const playlistId = parseInt(id, 10);
   if (isNaN(playlistId)) {
@@ -18,32 +24,12 @@ export async function PUT(
   try {
     const body = await request.json();
     const { order } = body;
-
-    if (!Array.isArray(order) || order.length === 0) {
-      return NextResponse.json({ error: 'Missing required field: order (array)' }, { status: 400 });
-    }
-
-    const pool = getPool();
-    const client = await pool.connect();
-
-    try {
-      await client.query('BEGIN');
-      for (const item of order as { track_id: number; position: number }[]) {
-        await client.query(
-          'UPDATE songtoplaylist SET position = $1 WHERE playlist_id = $2 AND track_id = $3',
-          [item.position, playlistId, item.track_id]
-        );
-      }
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
-
+    await playlistService.reorderTracks(playlistId, order);
     return NextResponse.json({ message: 'Playlist reordered successfully' });
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error(`PUT /api/playlists/${id}/songs/reorder error:`, error);
     return NextResponse.json({ error: 'Failed to reorder playlist' }, { status: 500 });
   }

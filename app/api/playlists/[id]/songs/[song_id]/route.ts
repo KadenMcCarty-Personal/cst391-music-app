@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import * as playlistService from '@/lib/services/playlistService';
+import { ServiceError } from '@/lib/services/playlistService';
 
 export const runtime = 'nodejs';
 
-// DELETE /api/playlists/[id]/songs/[song_id] - remove a track from a playlist
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ id: string; song_id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id, song_id } = await context.params;
   const playlistId = parseInt(id, 10);
   const trackId = parseInt(song_id, 10);
@@ -17,18 +24,12 @@ export async function DELETE(
   }
 
   try {
-    const pool = getPool();
-    const { rowCount } = await pool.query(
-      'DELETE FROM songtoplaylist WHERE playlist_id = $1 AND track_id = $2',
-      [playlistId, trackId]
-    );
-
-    if (rowCount === 0) {
-      return NextResponse.json({ error: 'Track not found in playlist' }, { status: 404 });
-    }
-
+    await playlistService.removeTrack(playlistId, trackId);
     return NextResponse.json({ message: `Track ${trackId} removed from playlist ${playlistId}` });
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error(`DELETE /api/playlists/${id}/songs/${song_id} error:`, error);
     return NextResponse.json({ error: 'Failed to remove track from playlist' }, { status: 500 });
   }
