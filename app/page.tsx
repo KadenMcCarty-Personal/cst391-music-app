@@ -71,7 +71,6 @@ export default function Page() {
   return (
     <main>
       <NavBar />
-      <h1>Kaden McCarty - Album List</h1>
       {error ? (
         <div style={{
           backgroundColor: "#fee2e2",

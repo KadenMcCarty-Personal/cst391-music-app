@@ -130,7 +130,7 @@ export default function PlaylistsPage() {
               className={`nav-link ${tab === "all" ? "active" : ""}`}
               onClick={() => setTab("all")}
             >
-              {isAdmin ? "All (incl. private)" : "All Public"}
+              {isAdmin ? "All Playlists" : "All Public"}
             </button>
           </li>
           {session && (
