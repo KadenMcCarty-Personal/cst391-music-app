@@ -22,6 +22,12 @@ export async function PUT(
   }
 
   try {
+    const existing = await playlistService.getPlaylist(playlistId);
+    const isAdmin = session.user?.role === 'admin';
+    if (!isAdmin && existing.user_id !== session.user?.githubId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { order } = body;
     await playlistService.reorderTracks(playlistId, order);

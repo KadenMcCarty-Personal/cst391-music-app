@@ -24,6 +24,12 @@ export async function DELETE(
   }
 
   try {
+    const existing = await playlistService.getPlaylist(playlistId);
+    const isAdmin = session.user?.role === 'admin';
+    if (!isAdmin && existing.user_id !== session.user?.githubId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await playlistService.removeTrack(playlistId, trackId);
     return NextResponse.json({ message: `Track ${trackId} removed from playlist ${playlistId}` });
   } catch (error) {

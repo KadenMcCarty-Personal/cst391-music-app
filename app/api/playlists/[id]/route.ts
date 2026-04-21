@@ -44,6 +44,12 @@ export async function PUT(
   }
 
   try {
+    const existing = await playlistService.getPlaylist(playlistId);
+    const isAdmin = session.user?.role === 'admin';
+    if (!isAdmin && existing.user_id !== session.user?.githubId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { name, is_public } = body;
     const playlist = await playlistService.updatePlaylist(playlistId, name, is_public);
@@ -73,6 +79,12 @@ export async function DELETE(
   }
 
   try {
+    const existing = await playlistService.getPlaylist(playlistId);
+    const isAdmin = session.user?.role === 'admin';
+    if (!isAdmin && existing.user_id !== session.user?.githubId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await playlistService.deletePlaylist(playlistId);
     return NextResponse.json({ message: `Playlist ${playlistId} deleted` });
   } catch (error) {

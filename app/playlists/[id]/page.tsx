@@ -10,6 +10,7 @@ import { Playlist, Album } from "@/lib/types";
 export default function PlaylistDetailPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "admin";
+  const githubId = session?.user?.githubId;
   const router = useRouter();
   const params = useParams();
   const playlistId = (params?.id as string) ?? "";
@@ -20,6 +21,9 @@ export default function PlaylistDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+
+  const isOwner = !!githubId && playlist?.user_id === githubId;
+  const canModify = isAdmin || isOwner;
 
   const loadPlaylist = async () => {
     try {
@@ -84,9 +88,11 @@ export default function PlaylistDetailPage() {
   const handleToggleVisibility = async () => {
     if (!playlist) return;
     try {
-      await put(`/admin/playlists/${playlistId}/visibility`, {
-        is_public: !playlist.is_public,
-      });
+      if (isAdmin && !isOwner) {
+        await put(`/admin/playlists/${playlistId}/visibility`, { is_public: !playlist.is_public });
+      } else {
+        await put(`/playlists/${playlistId}`, { is_public: !playlist.is_public });
+      }
       await loadPlaylist();
     } catch (err) {
       setError((err as Error).message);
@@ -124,7 +130,7 @@ export default function PlaylistDetailPage() {
               </span>
             </div>
 
-            {isAdmin && (
+            {canModify && (
               <div className="mb-4 d-flex gap-2">
                 <button className="btn btn-outline-warning btn-sm" onClick={() => void handleToggleVisibility()}>
                   Make {playlist.is_public ? "Private" : "Public"}
@@ -138,7 +144,7 @@ export default function PlaylistDetailPage() {
             <h5>Tracks ({playlist.tracks?.length ?? 0})</h5>
 
             {playlist.tracks && playlist.tracks.length === 0 && (
-              <p className="text-muted">No tracks yet. Add one below!</p>
+              <p className="text-muted">No tracks yet.{canModify ? " Add one below!" : ""}</p>
             )}
 
             <ul className="list-group mb-4">
@@ -148,7 +154,7 @@ export default function PlaylistDetailPage() {
                     <span className="text-muted me-2">#{track.position + 1}</span>
                     {track.title}
                   </span>
-                  {session && (
+                  {canModify && (
                     <button
                       className="btn btn-outline-danger btn-sm"
                       onClick={() => void handleRemoveTrack(track.track_id)}
@@ -160,7 +166,7 @@ export default function PlaylistDetailPage() {
               ))}
             </ul>
 
-            {session && (
+            {canModify && (
               <div className="card p-3">
                 <h6>Add a Song</h6>
                 <form onSubmit={(e) => void handleAddTrack(e)} className="d-flex gap-2">
